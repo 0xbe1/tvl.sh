@@ -1,0 +1,17 @@
+{
+  "compound": {
+    "comptrollerAddr": "0x3d9819210a31b4961b30ef54be2aed79b9c9cd3b",
+    "oracleAddr": "0x65c816077c29b557bee980ae3cc2dce80204a0c5",
+    "ctokenToUnderlyingDecimals": {
+      "0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5": 18,
+      "0xf5dce57282a584d2746faf1593d3121fcac444dc": 18
+    }
+  },
+  "cream-finance": {
+    "comptrollerAddr": "0x3d5BC3c8d13dcB8bF317092d84783c2697AE9258",
+    "oracleAddr": "0x338EEE1F7B89CE6272f302bDC4b952C13b221f1d",
+    "ctokenToUnderlyingDecimals": {
+      "0xD06527D5e56A3495252A528C4987003b712860eE": 18
+    }
+  }
+}

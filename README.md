@@ -11,5 +11,5 @@ yarn
 Run.
 
 ```
-node index.js
+node index.js [compound|cream-finance]
 ```

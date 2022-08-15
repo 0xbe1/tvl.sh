@@ -1,4 +1,5 @@
 const Web3 = require("web3");
+const CONFIG = require("./config.json");
 const CTOKEN_ABI = require("./abis/ctoken.json");
 const COMPTROLLER_ABI = require("./abis/comptroller.json");
 const ORACLE_ABI = require("./abis/oracle.json");
@@ -8,52 +9,58 @@ const INFURA_PROJECT_ID = "eab64cc6778f4435b0e94c4b10d78da6";
 const NODE_URL = `https://mainnet.infura.io/v3/${INFURA_PROJECT_ID}`;
 const web3 = new Web3(NODE_URL);
 
+// config
+const protocol = process.argv.slice(2)[0];
+const { comptrollerAddr, oracleAddr, ctokenToUnderlyingDecimals } =
+  CONFIG[protocol];
+
 // contracts
-const comptroller = new web3.eth.Contract(
-  COMPTROLLER_ABI,
-  "0x3d9819210a31b4961b30ef54be2aed79b9c9cd3b"
-);
-const oracle = new web3.eth.Contract(
-  ORACLE_ABI,
-  "0x65c816077c29b557bee980ae3cc2dce80204a0c5"
-);
+const comptroller = new web3.eth.Contract(COMPTROLLER_ABI, comptrollerAddr);
+const oracle = new web3.eth.Contract(ORACLE_ABI, oracleAddr);
+
+main();
+
+// helpers
 
 async function getAllMarkets() {
   return await comptroller.methods.getAllMarkets().call();
 }
 
-async function getUnderlyingPriceUSD(ctoken, underlyingDecimals) {
-  let priceMantissa = await oracle.methods
-    .getUnderlyingPrice(ctoken)
-    .call();
+// NOTE price could be either in USD or ETH depending on oracle implementation
+async function getUnderlyingPrice(ctoken, underlyingDecimals) {
+  let priceMantissa = await oracle.methods.getUnderlyingPrice(ctoken).call();
   return priceMantissa / Math.pow(10, 36 - underlyingDecimals);
 }
 
 async function getMarketTVL(ctoken_addr, underlyingDecimals) {
-  const ctoken = new web3.eth.Contract(CTOKEN_ABI, ctoken_addr);
-  let totalSupply = await ctoken.methods.totalSupply().call();
-  let exchangeRateCurrent = await ctoken.methods.exchangeRateCurrent().call();
-  let underlyingBalance =
-    (totalSupply * exchangeRateCurrent) / Math.pow(10, 18);
-  let underlyingPriceUSD = await getUnderlyingPriceUSD(
-    ctoken_addr,
-    underlyingDecimals
-  );
-  return (
-    (underlyingBalance * underlyingPriceUSD) / Math.pow(10, underlyingDecimals)
-  );
+  try {
+    const ctoken = new web3.eth.Contract(CTOKEN_ABI, ctoken_addr);
+    let totalSupply = await ctoken.methods.totalSupply().call();
+    console.log("totalSupply", totalSupply);
+    let exchangeRateCurrent = await ctoken.methods.exchangeRateCurrent().call();
+    console.log("exchangeRateCurrent", exchangeRateCurrent);
+    let underlyingBalance =
+      (totalSupply * exchangeRateCurrent) / Math.pow(10, 18);
+    console.log("underlyingBalance", underlyingBalance);
+    let underlyingPrice = await getUnderlyingPrice(
+      ctoken_addr,
+      underlyingDecimals
+    );
+    console.log("underlyingPrice", underlyingPrice);
+    return (
+      (underlyingBalance * underlyingPrice) / Math.pow(10, underlyingDecimals)
+    );
+  } catch (error) {
+    console.error(error);
+    return 0;
+  }
 }
 
-async function getUnderlyingDecimals(ctoken_addr) {
-  if (
-    ctoken_addr.toLowerCase() === "0x4ddc2d193948926d02f9b1fe9e1daa0718270ed5"
-  ) {
-    return 18;
-  }
-  if (
-    ctoken_addr.toLowerCase() === "0xf5dce57282a584d2746faf1593d3121fcac444dc"
-  ) {
-    return 18;
+async function getUnderlyingDecimals(ctoken_addr, special_cases) {
+  for (const [addr, decimals] of Object.entries(special_cases)) {
+    if (ctoken_addr.toLowerCase() === addr.toLowerCase()) {
+      return decimals;
+    }
   }
   const ctoken = new web3.eth.Contract(CTOKEN_ABI, ctoken_addr);
   const underlying_addr = await ctoken.methods.underlying().call();
@@ -64,15 +71,19 @@ async function getUnderlyingDecimals(ctoken_addr) {
 
 async function main() {
   let tvl = 0;
+  // TODO: get block number
   const ctokens = await getAllMarkets();
   for (const ctoken of ctokens) {
-    console.log(ctoken);
-    const underlyingDecimals = await getUnderlyingDecimals(ctoken);
+    console.log("==============================");
+    console.log("market", ctoken);
+    const underlyingDecimals = await getUnderlyingDecimals(
+      ctoken,
+      ctokenToUnderlyingDecimals
+    );
     let marketTVL = await getMarketTVL(ctoken, underlyingDecimals);
-    console.log(marketTVL);
+    console.log("marketTVL", marketTVL);
     tvl += marketTVL;
   }
-  console.log("total tvl:", tvl);
+  console.log("==============================");
+  console.log("protocolTVL:", tvl);
 }
-
-main();
