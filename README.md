@@ -8,6 +8,13 @@ Install dependencies.
 yarn
 ```
 
+Setup environment variables.
+
+```
+cp .env.example .env
+// then fill in your Infura project ID
+```
+
 Run.
 
 ```

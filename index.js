@@ -1,11 +1,12 @@
 const Web3 = require("web3");
+require("dotenv").config();
 const CONFIG = require("./config.json");
 const CTOKEN_ABI = require("./abis/ctoken.json");
 const COMPTROLLER_ABI = require("./abis/comptroller.json");
 const ORACLE_ABI = require("./abis/oracle.json");
 const ERC20_ABI = require("./abis/erc20.json");
 
-const INFURA_PROJECT_ID = "eab64cc6778f4435b0e94c4b10d78da6";
+const INFURA_PROJECT_ID = process.env.INFURA_PROJECT_ID;
 const NODE_URL = `https://mainnet.infura.io/v3/${INFURA_PROJECT_ID}`;
 const web3 = new Web3(NODE_URL);
 
