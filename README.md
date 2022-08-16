@@ -1,6 +1,6 @@
 # Compound TVL
 
-A script that computes Compound TVL.
+A script that computes TVL for Compound and its forks.
 
 Install dependencies.
 
