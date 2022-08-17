@@ -1,6 +1,6 @@
-# Compound TVL
+# TVL.sh
 
-A script that computes TVL for Compound and its forks.
+A hub of scripts that computes TVL for various protocols.
 
 Install dependencies.
 
@@ -15,8 +15,8 @@ cp .env.example .env
 // then fill in your Infura project ID
 ```
 
-Run.
+Run Compound for example.
 
 ```
-node index.js [compound|cream-finance]
+node compound/index.js [compound|cream-finance]
 ```
