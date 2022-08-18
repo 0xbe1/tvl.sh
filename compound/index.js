@@ -1,6 +1,7 @@
 const Web3 = require("web3");
 require("dotenv").config();
 const yargs = require("yargs");
+const BigNumber = require("bignumber.js");
 
 const CONFIG = require("./config.json");
 const CTOKEN_ABI = require("./abis/ctoken.json");
@@ -56,24 +57,33 @@ async function getUnderlyingPrice(blockNumber, ctoken, underlyingDecimals) {
 async function getMarketTVL(blockNumber, ctokenAddr, underlyingDecimals) {
   try {
     const ctoken = new web3.eth.Contract(CTOKEN_ABI, ctokenAddr);
-    let totalSupply = await ctoken.methods.totalSupply().call({}, blockNumber);
-    console.log("totalSupply", totalSupply);
-    let exchangeRateCurrent = await ctoken.methods
-      .exchangeRateCurrent()
-      .call({}, blockNumber);
-    console.log("exchangeRateCurrent", exchangeRateCurrent);
-    let underlyingBalance =
-      (totalSupply * exchangeRateCurrent) / Math.pow(10, 18);
-    console.log("underlyingBalance", underlyingBalance);
-    let underlyingPrice = await getUnderlyingPrice(
-      blockNumber,
-      ctokenAddr,
-      underlyingDecimals
+
+    // scaled by 10^(ctoken decimals)
+    let totalSupply = new BigNumber(
+      await ctoken.methods.totalSupply().call({}, blockNumber)
     );
-    console.log("underlyingPrice", underlyingPrice);
-    return (
-      (underlyingBalance * underlyingPrice) / Math.pow(10, underlyingDecimals)
+    console.log("totalSupply", totalSupply.toFixed(2));
+
+    // scaled by 10^(18 - ctoken decimals + underlying decimals)
+    let exchangeRateCurrent = new BigNumber(
+      await ctoken.methods.exchangeRateCurrent().call({}, blockNumber)
     );
+    console.log("exchangeRateCurrent", exchangeRateCurrent.toFixed(2));
+
+    // must do "div - mul - div" rather than "mul - div - div" otherwise probably due to overflow
+    // the result can be far from accurate
+    let underlyingBalance = exchangeRateCurrent
+      .dividedBy(exp10(18))
+      .multipliedBy(totalSupply)
+      .dividedBy(exp10(underlyingDecimals));
+    console.log("underlyingBalance", underlyingBalance.toFixed(2));
+
+    let underlyingPrice = new BigNumber(
+      await getUnderlyingPrice(blockNumber, ctokenAddr, underlyingDecimals)
+    );
+    console.log("underlyingPrice", underlyingPrice.toFixed(2));
+
+    return underlyingBalance.multipliedBy(underlyingPrice);
   } catch (error) {
     console.error(error);
     return 0;
@@ -97,7 +107,8 @@ async function getUnderlyingDecimals(blockNumber, ctokenAddr, special_cases) {
 
 async function main(blockNumber) {
   console.log("block number", blockNumber);
-  let tvl = 0;
+
+  let tvl = new BigNumber(0);
   const ctokens = await getAllMarkets(blockNumber);
   for (const ctoken of ctokens) {
     console.log("==============================");
@@ -108,9 +119,13 @@ async function main(blockNumber) {
       ctokenToUnderlyingDecimals
     );
     let marketTVL = await getMarketTVL(blockNumber, ctoken, underlyingDecimals);
-    console.log("marketTVL", marketTVL);
-    tvl += marketTVL;
+    console.log("marketTVL", marketTVL.toFixed(2));
+    tvl = tvl.plus(marketTVL);
   }
   console.log("==============================");
-  console.log("protocolTVL:", tvl);
+  console.log("protocolTVL:", tvl.toFixed(2));
+}
+
+function exp10(n) {
+  return new BigNumber(10).exponentiatedBy(n);
 }

@@ -1,5 +1,6 @@
 {
   "dependencies": {
+    "bignumber.js": "^9.1.0",
     "dotenv": "^16.0.1",
     "web3": "^1.7.5",
     "yargs": "^17.5.1"
