@@ -1,7 +1,8 @@
 {
   "dependencies": {
     "dotenv": "^16.0.1",
-    "web3": "^1.7.5"
+    "web3": "^1.7.5",
+    "yargs": "^17.5.1"
   },
   "devDependencies": {
     "prettier": "^2.7.1"

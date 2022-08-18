@@ -18,5 +18,5 @@ cp .env.example .env
 Run Compound for example.
 
 ```
-node compound/index.js [compound|cream-finance]
+node compound/index.js tvl -p [compound|cream-finance] -b [blockNumber]
 ```
